@@ -220,12 +220,6 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 	// read from stdin and parse "go test" results
 	for stdinScanner.Scan() {
 		lineInput := stdinScanner.Bytes()
-		if flags.verbose {
-			newline := []byte("\n")
-			if _, err := cmd.OutOrStdout().Write(append(lineInput, newline[0])); err != nil {
-				return nil, nil, err
-			}
-		}
 		goTestOutputRow := &goTestOutputRow{}
 		if err := json.Unmarshal(lineInput, goTestOutputRow); err != nil {
 			return nil, nil, err
@@ -250,11 +244,20 @@ func readTestDataFromStdIn(stdinScanner *bufio.Scanner, flags *cmdFlags, cmd *co
 				if goTestOutputRow.Action == "skip" {
 					status.Skipped = true
 				}
-				status.ElapsedTime = goTestOutputRow.Elapsed
+				if flags.verbose && goTestOutputRow.Action == "fail" {
+					if _, err := cmd.OutOrStdout().Write(append([]byte(strings.Join(allTests[key].Output, "\n")), []byte("\n")...)); err != nil {
+						return nil, nil, err
+					}
+				}
 			}
 			allPackageNames[goTestOutputRow.Package] = nil
 			if strings.Contains(goTestOutputRow.Output, "--- PASS:") {
 				goTestOutputRow.Output = strings.TrimSpace(goTestOutputRow.Output)
+				if flags.verbose {
+					if _, err := cmd.OutOrStdout().Write(append([]byte(goTestOutputRow.Output), []byte("\n")...)); err != nil {
+						return nil, nil, err
+					}
+				}
 			}
 			status.Output = append(status.Output, goTestOutputRow.Output)
 		}
