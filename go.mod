@@ -1,6 +1,6 @@
-module github.com/vakenbolt/go-test-report
+module github.com/trajan0x/go-test-report
 
-go 1.13
+go 1.20
 
 require (
 	github.com/spf13/cobra v1.1.3
